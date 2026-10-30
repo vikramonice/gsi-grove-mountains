@@ -1,0 +1,52 @@
+{
+ "box_km": [
+  1724.8292589404793,
+  339.22127380898695,
+  2270.9677979255653,
+  609.7712853502932
+ ],
+ "aspect": 0.4953871448883309,
+ "sites": [
+  {
+   "name": "Bharati",
+   "fx": 0.8617014354756778,
+   "fy": 0.25873220112323947,
+   "elev_m": 83,
+   "sea_km": 1.0
+  },
+  {
+   "name": "R1",
+   "fx": 0.6844965120644093,
+   "fy": 0.4317324644852749,
+   "elev_m": 1480,
+   "sea_km": 97.9
+  },
+  {
+   "name": "R2",
+   "fx": 0.24177673785062445,
+   "fy": 0.7353621507679354,
+   "elev_m": 2464,
+   "sea_km": 340.4
+  },
+  {
+   "name": "R3",
+   "fx": 0.128172606405115,
+   "fy": 0.7412677988767605,
+   "elev_m": 2584,
+   "sea_km": 394.5
+  },
+  {
+   "name": "Grove Area",
+   "fx": 0.14165021280147214,
+   "fy": 0.4689556526998464,
+   "elev_m": 1997,
+   "sea_km": 358.3
+  }
+ ],
+ "elev_note": "Elevation: Bedmap3 surface (m above sea level). Distance to sea: shortest straight line to the nearest Bedmap3 ocean cell (approximate; the ice front moves).",
+ "north_deg": 76,
+ "size_km": [
+  546,
+  271
+ ]
+}
