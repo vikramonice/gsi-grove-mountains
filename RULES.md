@@ -49,7 +49,7 @@ every **3 hours**:
 | Low-cloud humidity | Highest relative humidity **over ice** in the lowest 1.5 km above the model ground (converted from the model's humidity over water with the Magnus formula, Alduchov & Eskridge 1996) |
 | Thick low cloud | Depth of the saturated layer (humidity over ice ≥ 95 %) whose base is within 1.5 km of the ground |
 
-A **day** is the eight 3-hourly values ending within that UTC day (03, 06, … 21, 24 UTC).
+**All times are IST (UTC + 5:30).** A **day** is the eight 3-hourly values ending within that IST day (02:30, 05:30, … 23:30 IST, i.e. the model's 21, 00, … 18 UTC steps). The downloaded numbers (CSV) carry both `time_ist` and `time` (UTC).
 
 ## The rules
 
@@ -57,9 +57,9 @@ A **day** is the eight 3-hourly values ending within that UTC day (03, 06, … 2
 |---|---|---|---|
 | **Drifting snow** | Mean wind ≥ **10 m/s (20 kt)**; ≥ **7 m/s (14 kt)** if ≥ **0.5 mm** of snow fell in the previous 48 h | "Drifting snow likely HH–HH UTC" (+ "fresh snow drifts from about 14 kt") · amber | Handbook: drift from about 10 m/s, earlier on fresh snow. **7 m/s and 0.5 mm: our choice** |
 | **Blowing snow** | Mean wind ≥ **18 m/s (35 kt)** | "Blowing snow likely …: visibility poor to nil" · red | Handbook: blowing snow from about 18 m/s |
-| **Wind line** | Prevailing direction (vector mean of winds > 2 m/s), daily range, time and direction of the strongest wind | "E 19–29 kt (10–15 m/s), strongest around 03 UTC from E" | Description only |
+| **Wind line** | Prevailing direction (vector mean of winds > 2 m/s), daily range, time and direction of the strongest wind | "E 19–29 kt (10–15 m/s), strongest around 08:30 IST from E" | Description only |
 | **Storm pattern** (coast, slope) | Wind ≥ 5 m/s from **45–135°** (north-east to south-east) **and** (pressure fell ≥ 2 hPa in 12 h **or** ≥ 0.2 mm of snow that day) | "East to north-easterly wind … a depression or front over Prydz Bay. This is the gale and snowstorm pattern here; gales can last a few days." · amber | Handbook (Zhongshan): pressure drop, temperature and humidity rise with a snowstorm as a low turns over Prydz Bay; gales last a few days. (Law Base): east to north-east winds strengthen after a front. **Thresholds: our choice** |
-| **Katabatic wind** (coast, slope) | No storm pattern; wind ≥ 5 m/s from **67.5–157.5°** (east to south-east) in the steps ending **21, 00, 03 or 06 UTC** | "East to south-easterly katabatic wind …, usually with clear skies. It peaks in the morning (around 02–07 UTC) and afternoons are usually calm; channelled katabatics can reach 33–48 kt." · amber if the day's wind reaches 7 m/s | Handbook (Law Base): katabatic of 9–10 m/s peaking after about 02 UTC, onset 15–22 UTC, calm afternoons. (Zhongshan): katabatic gales 07–12 local time in summer, steady east-south-east wind under clear skies; gully-channelled katabatics 17–25 m/s. (Progress): easterly at night up to 10 m/s, dropping in the afternoon |
+| **Katabatic wind** (coast, slope) | No storm pattern; wind ≥ 5 m/s from **67.5–157.5°** (east to south-east) in the steps ending **02:30, 05:30, 08:30 or 11:30 IST** (21, 00, 03, 06 UTC) | "East to south-easterly katabatic wind …, usually with clear skies. It peaks in the morning (around 07:30–12:30 IST) and afternoons are usually calm; channelled katabatics can reach 33–48 kt." · amber if the day's wind reaches 7 m/s | Handbook (Law Base): katabatic of 9–10 m/s peaking after about 02 UTC (07:30 IST), onset 15–22 UTC (20:30–03:30 IST), calm afternoons. (Zhongshan): katabatic gales 07–12 local time in summer, steady east-south-east wind under clear skies; gully-channelled katabatics 17–25 m/s. (Progress): easterly at night up to 10 m/s, dropping in the afternoon |
 | **Northerly** (coast) | No storm pattern, day's wind < 10 m/s, strongest from 300–30° | "Light northerly: moist maritime air over Prydz Bay. Small lows just off the coast can drift onshore with moderate snow, and cloud damps the morning katabatic." | Handbook (Law Base): light northerly maritime flow; mesocyclones off the coast drift onshore with moderate snow; cloud damps the katabatic |
 | **Strong drainage wind** (inland) | Wind ≥ 10 m/s | "Strong drainage wind … Inland it strengthens when a weather system tightens the pressure gradient or a front approaches from the east; its direction changes little." · amber | Handbook (Prince Charles Mountains): winds strengthen, keeping their direction, when the inland high intensifies, gradients increase or fronts approach from the east |
 | **Nunatak gusts** (Grove Area) | Wind ≥ **13 m/s (25 kt)** | "Near the nunataks gusts can be 1.5–2 times the mean wind, with turbulence and rotors." · amber | Handbook (Prince Charles Mountains, Mount Kirkby): gusts 1.5–2 times the average wind, severe mechanical turbulence and rotors in strong winds. **13 m/s: our choice** |
@@ -73,7 +73,7 @@ A **day** is the eight 3-hourly values ending within that UTC day (03, 06, … 2
 | **Pressure falling** (coast, slope) | Fall ≥ **4 hPa in 12 h** | "Falling fast … A sign of worsening weather." · amber; with ≥ 5 °C of warming: "the classic sign of a depression arriving" | Handbook (Zhongshan): pressure drops while temperature and humidity rise as a low arrives. **4 hPa/12 h, 5 °C: our choice** |
 | **Pressure rising** (coast, slope) | Rise ≥ **4 hPa in 12 h** | "Rising fast … wind easing and skies clearing." | Handbook: steep rise after a storm = clearing |
 | **No pressure rule inland** | R2, R3, Grove Area | — | Sea-level pressure reduced from 2–2.6 km is unreliable; the handbook (Prince Charles Mountains) found pressure a poor guide there |
-| **Last run** | Same day in the previous AMPS run (12 h older): strongest wind within 3 m/s and snow on the same side of 0.5 mm → "consistent"; otherwise "changed … treat as uncertain" | "Previous run (29 Oct 00 UTC): strongest wind 30 kt, snow 0.4 mm. Consistent with this run." | **Our choice**: a hazard in two runs in a row is more reliable |
+| **Last run** | Same day in the previous AMPS run (12 h older): strongest wind within 3 m/s and snow on the same side of 0.5 mm → "consistent"; otherwise "changed … treat as uncertain" | "Previous run (29 Oct 05:30 IST): strongest wind 30 kt, snow 0.4 mm. Consistent with this run." | **Our choice**: a hazard in two runs in a row is more reliable |
 | **Lead time** | Forecast day 4 and later | "lower confidence (forecast day 4)" | Model skill falls with lead time |
 
 Each site also carries a short standing note from the handbook (coast, slope or inland).
@@ -106,5 +106,6 @@ Read it as a correction: for example "AMPS about 3 °C too cold" means expect it
 
 ## Change log
 
+- 2026-10-30: all times shown in IST (UTC + 5:30), at the team's request.
 - 2026-10-30: page set up from the MINIS Meteograms site; rules rewritten for the Bharati – Grove
   Mountains traverse from handbook sections 7.8.1–7.8.3 and 7.7.2.

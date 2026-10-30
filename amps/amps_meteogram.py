@@ -73,6 +73,9 @@ for _p in LEVELS:
     FIELDS += [("rh%d" % _p, "RH", "%d mb" % _p), ("tk%d" % _p, "TMP", "%d mb" % _p),
                ("z%d" % _p, "HGT", "%d mb" % _p)]
 MAXR = 80                                 # ranges per request (Apache MaxRanges is 200)
+# display time zone: data stay in UTC (the station check matches UTC report times); charts and notes show IST
+TZ_OFF = dt.timedelta(hours=5, minutes=30)
+TZ_NAME = "IST"
 
 # UCAR's certificate chains to emSign Root CA - G1, which Mozilla dropped (certifi 2026.10.18);
 # the cloud routine failed on it from 2026-10-19 22:45 UTC. That root is trusted for the AMPS
@@ -400,8 +403,9 @@ def plot(site, p, rows, cycle, png):
 
     plt.rcParams.update({"font.size": 11, "axes.edgecolor": "#444444", "axes.linewidth": 0.8,
                          "font.family": "DejaVu Sans"})
-    t = np.array([r["time"] for r in rows])
+    t = np.array([(r["time"] + TZ_OFF).replace(tzinfo=dt.timezone.utc) for r in rows])   # IST shown on the UTC axis
     tn = mdates.date2num(t)
+    MID = np.arange(np.ceil(tn[0]), tn[-1] + 1e-9, 1.0)        # midnights on the (IST) axis
     a = {k: np.array([r[k] for r in rows], float) for k in rows[0] if k not in ("time", "prof")}
     # smooth hourly curves for display (data stay 3-hourly)
     th = np.arange(tn[0], tn[-1] + 1e-9, 1 / 24)
@@ -421,7 +425,7 @@ def plot(site, p, rows, cycle, png):
 
     # day/night shading and day separators on every panel
     tt = [mdates.num2date(v) for v in np.arange(tn[0], tn[-1], 1 / 48)]
-    el = sun_elev(tt, p["lat"], p["lon"])
+    el = sun_elev([x - TZ_OFF for x in tt], p["lat"], p["lon"])   # axis is IST; the sun needs UTC
     tq = mdates.date2num(tt)
     day = el > 0
     edges = np.flatnonzero(np.diff(day.astype(int))) + 1
@@ -431,7 +435,7 @@ def plot(site, p, rows, cycle, png):
         for sg in segs:
             if day[sg[0]]:
                 x.axvspan(tq[sg[0]], tq[min(sg[-1] + 1, len(tq) - 1)], color=DAY, zorder=0, lw=0)
-        for v in tn:
+        for v in MID:
             if mdates.num2date(v).hour == 0:
                 x.axvline(v, color="#9a9a9a", lw=0.8, zorder=1)
         x.grid(axis="y", color="#cfcfcf", lw=0.6, ls=":", zorder=1)
@@ -443,14 +447,14 @@ def plot(site, p, rows, cycle, png):
         x.set_xlim(tn[0], tn[-1])
 
     # day headers (meteoblue style)
-    for v in tn:
+    for v in MID:
         d = mdates.num2date(v)
         if d.hour == 0 and v + 0.5 <= tn[-1]:
             ax[0].text(v + 0.5, 1.035, d.strftime("%A\n%d.%m"), transform=ax[0].get_xaxis_transform(),
                        ha="center", va="bottom", fontsize=12.5)
     d0 = mdates.num2date(tn[0])
     if d0.hour != 0:
-        ax[0].text((tn[0] + mdates.date2num(d0.replace(hour=0) + dt.timedelta(days=1))) / 2, 1.035,
+        ax[0].text((tn[0] + mdates.date2num(d0.replace(hour=0, minute=0) + dt.timedelta(days=1))) / 2, 1.035,
                    d0.strftime("%a\n%d.%m"), transform=ax[0].get_xaxis_transform(), ha="center",
                    va="bottom", fontsize=11, color="#666666")
 
@@ -470,7 +474,7 @@ def plot(site, p, rows, cycle, png):
     ax[0].set_ylim(lo, hi)
     ax[0].set_ylabel("Temperature (°C)")
     # daily min / max labels
-    for v in tn:
+    for v in MID:
         if mdates.num2date(v).hour != 0:
             continue
         m = (th >= v) & (th < v + 1)
@@ -563,8 +567,9 @@ def plot(site, p, rows, cycle, png):
              % (-p["lat"], p["lon"], round(a["zsfc"][0]), p["dist_km"]), fontsize=12, va="top")
     fig.text(0.98, 0.975, "AMPS WRF 8 km", fontsize=17, va="top", ha="right", color="#1a4a7a",
              fontweight="bold")
-    fig.text(0.98, 0.945, "run %s UTC" % c0.strftime("%d %b %Y %H"), fontsize=12, va="top", ha="right")
-    fig.text(0.02, 0.012, "Times UTC (IST = UTC+5:30). Daylight shaded. Data: AMPS (NCAR/NSF), 8 km grid, 3-hourly; no gusts.",
+    fig.text(0.98, 0.945, "run %s %s (%s UTC)" % ((c0 + TZ_OFF).strftime("%d %b %Y %H:%M"), TZ_NAME, c0.strftime("%H")),
+             fontsize=12, va="top", ha="right")
+    fig.text(0.02, 0.012, "Times IST (UTC+5:30). Daylight shaded. Data: AMPS (NCAR/NSF), 8 km grid, 3-hourly; no gusts.",
              fontsize=8.5, color="#666666")
     fig.text(0.98, 0.012, SITE_URL, fontsize=9, color="#1a4a7a", ha="right")     # where the chart comes from
     fig.savefig(png, dpi=110, facecolor=fig.get_facecolor())
@@ -593,11 +598,14 @@ def main():
     for n, rows in series.items():
         slug = SLUGS.get(n) or re.sub(r"[^A-Za-z0-9]+", "_", n).strip("_").lower()
         with open(OUT / ("%s_%s.csv" % (cycle, slug)), "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=[k for k in rows[0] if k not in ("u", "v", "prof")], extrasaction="ignore")
+            fields = [k for k in rows[0] if k not in ("u", "v", "prof")]
+            w = csv.DictWriter(f, fieldnames=["time_ist"] + fields, extrasaction="ignore")     # "time" stays UTC
             w.writeheader()
             for r in rows:
-                w.writerow({k: (r[k].strftime("%Y-%m-%d %H:%M") if k == "time" else
-                                (round(r[k], 2) if isinstance(r[k], float) else r[k])) for k in w.fieldnames})
+                row = {k: (r[k].strftime("%Y-%m-%d %H:%M") if k == "time" else
+                           (round(r[k], 2) if isinstance(r[k], float) else r[k])) for k in fields}
+                row["time_ist"] = (r["time"] + TZ_OFF).strftime("%Y-%m-%d %H:%M")
+                w.writerow(row)
         png = OUT / ("%s_%s.png" % (cycle, slug))
         plot(n, pts[n], rows, cycle, png)
         (OUT / ("latest_%s.png" % slug)).write_bytes(png.read_bytes())

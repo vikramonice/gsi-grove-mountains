@@ -204,7 +204,7 @@ footer { font-size: 0.82rem; color: var(--muted); }
 
   <figure id="fig">
     <div class="scroller" id="scroller"><img id="img" alt=""></div>
-    <figcaption>Tap to zoom; scroll sideways when zoomed. Times UTC (IST = UTC + 5:30).</figcaption>
+    <figcaption>Tap to zoom; scroll sideways when zoomed. Times IST (UTC + 5:30).</figcaption>
   </figure>
   <div class="empty" id="nochart" hidden>This older run&rsquo;s chart was not kept; its numbers and notes are below.</div>
   <div class="empty" id="empty" hidden>No runs yet. They appear after the next update.</div>
@@ -265,10 +265,10 @@ footer { font-size: 0.82rem; color: var(--muted); }
       <ol class="flow">
         <li><span class="ic" aria-hidden="true">&#127757;</span><div><h3>1. The model: AMPS</h3>
           <p>NCAR&rsquo;s weather model tuned for Antarctica: 8&nbsp;km grid, twice a day, 5 days ahead.</p>
-          <span class="when">runs at 00 and 12 UTC, online about 10 h later</span></div></li>
+          <span class="when">runs at 05:30 and 17:30 IST (00 and 12 UTC), online about 10 h later</span></div></li>
         <li><span class="ic" aria-hidden="true">&#9201;</span><div><h3>2. An automatic job collects it</h3>
           <p>A GitHub job checks every 30 minutes while a run is due and downloads only the values at the grid points nearest the five sites (a few hundred kB).</p>
-          <span class="when">09:00&ndash;12:00 and 21:00&ndash;00:30 UTC</span></div></li>
+          <span class="when">14:30&ndash;17:30 and 02:30&ndash;06:00 IST</span></div></li>
         <li><span class="ic" aria-hidden="true">&#128200;</span><div><h3>3. Charts and field notes</h3>
           <p>It draws the charts and writes the notes by fixed handbook rules, comparing each day with the previous run.
           <a class="mb" href="https://github.com/vikramonice/gsi-grove-mountains/blob/main/RULES.md" target="_blank" rel="noopener">Every rule and its source &#8599;</a></p></div></li>
@@ -323,12 +323,19 @@ footer { font-size: 0.82rem; color: var(--muted); }
     $("sitetab-note").textContent = map.elev_note || "";
   })();
 
+  var IST = 5.5 * 3.6e6;                     // page shows IST (UTC + 5:30); data and file names stay UTC
+  function hm(l) { return String(l.getUTCHours()).padStart(2, "0") + ":" + String(l.getUTCMinutes()).padStart(2, "0"); }
+  function istText(s) {                       // "YYYY-mm-dd HH:MM" (UTC) -> "dd Mon HH:MM IST"
+    var l = new Date(Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), +s.slice(11, 13), +s.slice(14, 16)) + IST);
+    return l.toUTCString().slice(5, 11) + " " + hm(l) + " IST";
+  }
   function cycleDate(c) {
     return new Date(Date.UTC(+c.slice(0, 4), +c.slice(4, 6) - 1, +c.slice(6, 8), +c.slice(8, 10)));
   }
   function runLabel(c) {
     var d = cycleDate(c);
-    return d.toUTCString().slice(0, 11) + " " + c.slice(8, 10) + " UTC";
+    var l = new Date(d.getTime() + IST);
+    return l.toUTCString().slice(0, 11) + " " + hm(l) + " IST";
   }
   function ageText(c) {
     var h = (Date.now() - cycleDate(c).getTime()) / 3.6e6;
@@ -340,7 +347,7 @@ footer { font-size: 0.82rem; color: var(--muted); }
   function nextDue(latest) {
     var due = new Date(cycleDate(latest).getTime() + 22 * 3.6e6);
     var late = Date.now() > due.getTime() + 1.5 * 3.6e6;
-    return (late ? "next run late (due" : "next run due") + " \u2248 " + String(due.getUTCHours()).padStart(2, "0") + " UTC" + (late ? ")" : "");
+    return (late ? "next run late (due" : "next run due") + " \u2248 " + hm(new Date(due.getTime() + IST)) + " IST" + (late ? ")" : "");
   }
   function current() {
     var r = runs[state.run];
@@ -425,7 +432,7 @@ footer { font-size: 0.82rem; color: var(--muted); }
     box.hidden = !g;
     $("g-notice").hidden = !g;
     if (!g) return;
-    $("g-made").textContent = "written " + g.made + " UTC from this run";
+    $("g-made").textContent = "written " + g.made.slice(8, 10) + "." + g.made.slice(5, 7) + " " + g.made.slice(11) + " IST from this run";
     $("g-head").textContent = g.headline;
     $("g-site").textContent = g.site_note || ""; $("g-site").hidden = !g.site_note;
     $("g-disc").textContent = (g.disclaimer || "").replace("AMPS model guidance written by fixed rules, not a forecaster's forecast.", 'Written automatically by fixed rules from the AMPS numbers, not by a forecaster.').replace('Check the latest run and look outside.', 'Use the newest run, and trust what you see on site over the model.');
@@ -451,7 +458,7 @@ footer { font-size: 0.82rem; color: var(--muted); }
     try { v = JSON.parse($("verify").textContent); } catch (e) { v = null; }
     if (!v || !v.records || !v.records.length) return;
     $("verify-box").hidden = false;
-    $("v-made").textContent = "reports up to " + v.updated + " UTC";
+    $("v-made").textContent = "reports up to " + istText(v.updated);
     var ul = $("v-stats"); ul.textContent = "";
     function li(t) { var e = document.createElement("li"); e.textContent = t; ul.appendChild(e); }
     function sgn(x, unit, more, less) {
@@ -506,10 +513,10 @@ footer { font-size: 0.82rem; color: var(--muted); }
         el("text", { x: L - 6, y: Y(g) + 4, "text-anchor": "end", "font-size": 12, fill: "currentColor" }, String(g));
       }
       el("text", { x: 4, y: P.top - 12, "font-size": 12, fill: "currentColor" }, P.label);
-      for (var d = Math.ceil(tStart / 864e5) * 864e5; d <= tEnd; d += 864e5) {
+      for (var d = Math.ceil((tStart + IST) / 864e5) * 864e5 - IST; d <= tEnd; d += 864e5) {   // IST midnights
         el("line", { x1: X(d), x2: X(d), y1: P.top, y2: P.top + P.h, stroke: "currentColor", "stroke-opacity": 0.45 });
         if (P.key === "T") el("text", { x: X(d) + 4, y: P.top + P.h + 18, "font-size": 12, fill: "currentColor" },
-          new Date(d).toUTCString().slice(0, 11));
+          new Date(d + IST).toUTCString().slice(0, 11));
       }
       // AMPS line through the compared times
       var pts = recs.filter(function (r) { return r.st === "89573" && r.fc; })
@@ -589,7 +596,7 @@ footer { font-size: 0.82rem; color: var(--muted); }
       if (draw) { ctx.fillStyle = C.line; ctx.fillRect(pad, img.height + 10, W - 2 * pad, 2); }
       y += 10;
       para("Field weather notes - " + title, "600 30px " + F, C.ink, pad, W - 2 * pad, 38);
-      para("written " + g.made + " UTC from this run", "20px " + F, C.muted, pad, W - 2 * pad, 28);
+      para("written " + g.made.slice(8, 10) + "." + g.made.slice(5, 7) + " " + g.made.slice(11) + " IST from this run", "20px " + F, C.muted, pad, W - 2 * pad, 28);
       y += 8;
       para(g.headline, "600 23px " + F, C.ink, pad, W - 2 * pad, 31);
       if (g.site_note) para(g.site_note, "21px " + F, C.muted, pad, W - 2 * pad, 28);

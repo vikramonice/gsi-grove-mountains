@@ -21,8 +21,8 @@ R2, R3, Grove Area (nunataks: Grove Area).
   storm      coast and slope: easterly to north-easterly wind with falling pressure or snow = a
              depression or front over Prydz Bay, the gale and snowstorm pattern; gales can last a
              few days (Zhongshan; Law Base: E-NE winds strengthen after a front).
-  katabatic  coast and slope: east to south-easterly wind at night and in the morning (18-06 UTC),
-             peaking around 02-07 UTC, afternoons usually calm; gully-channelled katabatics reach
+  katabatic  coast and slope: east to south-easterly wind at night and in the morning (18-06 UTC,
+             23:30-11:30 IST), peaking around 02-07 UTC (07:30-12:30 IST), afternoons usually calm; gully-channelled katabatics reach
              17-25 m/s (33-48 kt) in stable conditions (Law Base, Zhongshan, Progress).
   northerly  coast: light northerly = moist maritime air over Prydz Bay; small lows just off the
              coast can drift onshore with moderate snow, and cloud damps the katabatic (Law Base).
@@ -58,7 +58,7 @@ import json
 
 import numpy as np
 
-from amps_meteogram import OUT
+from amps_meteogram import OUT, TZ_NAME, TZ_OFF
 
 KN = 1.94384
 CONST = dict(drift=10.0, drift_fresh=7.0, blow=18.0, fresh_mm=0.5, snow=0.5, snow_trace=0.2, snow_mark=2.0,
@@ -88,7 +88,7 @@ def kn(v):
 
 
 def hours(times):
-    """Merge a sorted list of datetimes (3-hourly) into 'HH-HH UTC' spans."""
+    """Merge a sorted list of datetimes (3-hourly, IST) into 'HH:MM-HH:MM IST' spans."""
     if not times:
         return ""
     spans, a, b = [], times[0], times[0]
@@ -98,15 +98,16 @@ def hours(times):
         else:
             spans.append((a, b)); a = b = t
     spans.append((a, b))
-    # values are 3-h steps ending in the day, so 00 UTC is the day's end: midnight / 24
-    one = lambda t: "around midnight" if t.hour == 0 else "around %02d UTC" % t.hour
-    two = lambda a, b: "%02d-%s UTC" % (a.hour, "24" if b.hour == 0 else "%02d" % b.hour)
+    # values are 3-h steps ending at 02:30, 05:30 ... 23:30 IST (the 00, 03 ... 21 UTC model steps)
+    one = lambda t: "around %s %s" % (t.strftime("%H:%M"), TZ_NAME)
+    two = lambda a, b: "%s-%s %s" % (a.strftime("%H:%M"), b.strftime("%H:%M"), TZ_NAME)
     return ", ".join(one(a) if a == b else two(a, b) for a, b in spans)
 
 
 def parse(text):
     rows = list(csv.DictReader(io.StringIO(text)))
-    A = {"time": np.array([dt.datetime.strptime(r["time"], "%Y-%m-%d %H:%M") for r in rows])}
+    # CSV times are UTC; the notes work in IST (days and hours as the team lives them)
+    A = {"time": np.array([dt.datetime.strptime(r["time"], "%Y-%m-%d %H:%M") + TZ_OFF for r in rows])}
     for k in ("t2", "wchill", "wspd", "wdir", "mslp", "apcp", "rhi_low", "cld_depth"):
         A[k] = np.array([float(r.get(k) or "nan") for r in rows])
     return A
@@ -192,11 +193,11 @@ def day_summary(day, A, P, prev_label, lead_day, slug):
                               text="East to north-easterly wind %s with falling pressure or snow: a depression or front "
                                    "over Prydz Bay. This is the gale and snowstorm pattern here; gales can last a few "
                                    "days." % hours(cyc)))
-        kat = [t for t, x, y in zip(ta, w, d) if x >= 5 and 67.5 <= y <= 157.5 and t.hour in (21, 0, 3, 6)]
+        kat = [t for t, x, y in zip(ta, w, d) if x >= 5 and 67.5 <= y <= 157.5 and (t - TZ_OFF).hour in (21, 0, 3, 6)]
         if kat and not storm:
             items.append(dict(kind="Pattern", level="watch" if np.nanmax(w) >= c["drift_fresh"] else "ok",
                               text="East to south-easterly katabatic wind %s, usually with clear skies. It peaks in the "
-                                   "morning (around 02-07 UTC) and afternoons are usually calm; channelled katabatics "
+                                   "morning (around 07:30-12:30 IST) and afternoons are usually calm; channelled katabatics "
                                    "can reach 33-48 kt." % hours(kat)))
         if slug in COAST and not storm and np.nanmax(w) < 10 and (w >= 3).any() and (d[k] >= 300 or d[k] <= 30):
             items.append(dict(kind="Pattern", level="ok",
@@ -264,7 +265,7 @@ def day_summary(day, A, P, prev_label, lead_day, slug):
         pass                                   # sea-level pressure on the plateau is unreliable (handbook, PCM)
     elif np.nanmin(dp) <= -c["pfall"]:
         i = int(np.nanargmin(dp))
-        txt = "Falling fast: %.0f hPa in the 12 h to %02d UTC." % (-dp[i], ta[i].hour or 24)
+        txt = "Falling fast: %.0f hPa in the 12 h to %s %s." % (-dp[i], ta[i].strftime("%H:%M"), TZ_NAME)
         if dT[i] >= c["warm"]:
             txt += " With %.0f °C of warming: the classic sign of a depression arriving. Expect wind to rise." % dT[i]
         else:
@@ -301,8 +302,9 @@ def day_summary(day, A, P, prev_label, lead_day, slug):
 def summarise(cycle, slug, start):
     A = parse((OUT / ("%s_%s.csv" % (cycle, slug))).read_text())
     prev, P = previous(cycle, slug)
-    pl = dt.datetime.strptime(prev, "%Y%m%d%H").strftime("%d %b %H UTC")
-    c0 = dt.datetime.strptime(cycle, "%Y%m%d%H")
+    pl = (dt.datetime.strptime(prev, "%Y%m%d%H") + TZ_OFF).strftime("%d %b %H:%M " + TZ_NAME)
+    c0 = dt.datetime.strptime(cycle, "%Y%m%d%H") + TZ_OFF
+    start = start + TZ_OFF                          # `start` comes in UTC
     d = dt.datetime(start.year, start.month, start.day)
     days = []
     while d + dt.timedelta(hours=12) <= A["time"][-1]:
